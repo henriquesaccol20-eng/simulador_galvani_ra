@@ -99,4 +99,44 @@ html_code = """
 
             if (ddp > 0.5) {
                 let intensidade = ddp - 0.5; 
-                let amplitude
+                let amplitude = intensidade * 0.4; 
+                let frequencia = intensidade * 20; 
+                variacao = Math.sin(time * frequencia) * amplitude;
+                if (variacao < 0) variacao = variacao * 0.2; // Evita pular para baixo
+            }
+
+            // 3. União Visual (A "Pelve")
+            ctx.beginPath();
+            ctx.moveTo(180, 150); // Ponto inicial da perna de cima
+            ctx.lineTo(180, 250); // Ponto inicial da perna de baixo
+            ctx.strokeStyle = '#2E7D32'; // Mesma cor do tronco
+            ctx.lineWidth = 26; // Mesma espessura
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // 4. Desenhar as DUAS Rãs
+            drawLeg(ctx, 180, 150, variacao); // Perna Superior
+            drawLeg(ctx, 180, 250, variacao); // Perna Inferior
+        }
+
+        // Loop de animação contínuo
+        function animate() {
+            let anodo = parseFloat(sliderAnodo.value);
+            let ddp = CATODO - anodo; 
+            
+            valAnodo.innerText = anodo.toFixed(2) + ' V';
+            valDdp.innerText = ddp.toFixed(2) + ' V';
+
+            drawScene(ddp);
+            
+            time += 0.05; 
+            requestAnimationFrame(animate); 
+        }
+
+        animate(); 
+    </script>
+</body>
+</html>
+"""
+
+components.html(html_code, height=750)
