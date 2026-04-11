@@ -1,112 +1,135 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Simulador de Galvani", layout="wide")
+st.set_page_config(page_title="Galvani: Tensão e Movimento", layout="centered")
 
-# O segredo: Colocar os sliders em HTML/JS junto com o motor de física para não recarregar a página.
+# O painel de controle e a animação agora são 100% integrados em Canvas (HTML5)
 html_code = """
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .painel { display: flex; gap: 30px; background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; width: 100%; max-width: 800px; justify-content: center;}
-        .controle { display: flex; flex-direction: column; align-items: center; }
-        input[type=range] { width: 150px; cursor: pointer; }
-        .ddp-display { font-size: 24px; font-weight: bold; color: #d32f2f; display: flex; align-items: center; margin-left: 20px;}
-        #canvas-container { border-radius: 12px; overflow: hidden; border: 2px solid #eee; }
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; background: white;}
+        .painel { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #ccc; width: 100%; max-width: 600px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .controle { margin-bottom: 15px; }
+        .controle label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;}
+        input[type=range] { width: 100%; cursor: pointer; }
+        input[type=range]:disabled { cursor: not-allowed; opacity: 0.6; }
+        .destaque { color: #d32f2f; font-size: 1.5em; font-weight: bold; }
+        canvas { border: 2px solid #ddd; border-radius: 12px; background: #fafafa; }
     </style>
 </head>
 <body>
 
     <div class="painel">
         <div class="controle">
-            <label>Anodo (Zn): <b id="val-anodo">-0.76 V</b></label>
-            <input type="range" id="slider-anodo" min="-3" max="3" step="0.1" value="-0.76">
+            <label>Catodo (Cobre - Valor Fixo): <span style="color:#B87333;">+0.34 V</span></label>
+            <input type="range" disabled value="0.34" min="-2" max="2">
         </div>
         <div class="controle">
-            <label>Catodo (Cu): <b id="val-catodo">0.34 V</b></label>
-            <input type="range" id="slider-catodo" min="-3" max="3" step="0.1" value="0.34">
+            <label>Anodo (Zinco - Ajustável): <span id="val-anodo">-0.76 V</span></label>
+            <input type="range" id="slider-anodo" min="-3" max="0" step="0.05" value="-0.76">
         </div>
-        <div class="ddp-display">
-            ddp: <span id="val-ddp" style="margin-left: 8px;">1.10 V</span>
+        <div style="text-align: center; margin-top: 15px; font-size: 18px;">
+            Diferença de Potencial (ddp): <span class="destaque" id="val-ddp">1.10 V</span>
         </div>
     </div>
 
-    <div id="canvas-container"></div>
+    <canvas id="canvas" width="600" height="350"></canvas>
 
     <script>
-        const { Engine, Render, Runner, Bodies, Composite, Constraint } = Matter;
-        
-        const engine = Engine.create();
-        const render = Render.create({
-            element: document.getElementById('canvas-container'),
-            engine: engine,
-            options: { width: 800, height: 400, wireframes: false, background: '#fafafa' }
-        });
-
-        // Partes da Rã (Limpo, sem contornos)
-        const torso = Bodies.rectangle(300, 250, 100, 40, { isStatic: true, render: { fillStyle: '#2e7d32' }, collisionFilter: { group: -1 } });
-        const coxa = Bodies.rectangle(380, 250, 80, 30, { render: { fillStyle: '#4caf50' }, collisionFilter: { group: -1 } });
-        const canela = Bodies.rectangle(450, 250, 80, 20, { render: { fillStyle: '#81c784' }, collisionFilter: { group: -1 } });
-
-        // Articulações INVISÍVEIS (render: false)
-        const quadril = Constraint.create({
-            bodyA: torso, pointA: { x: 40, y: 0 },
-            bodyB: coxa, pointB: { x: -30, y: 0 },
-            stiffness: 0.9, length: 0, render: { visible: false }
-        });
-        
-        const joelho = Constraint.create({
-            bodyA: coxa, pointA: { x: 30, y: 0 },
-            bodyB: canela, pointB: { x: -30, y: 0 },
-            stiffness: 0.9, length: 0, render: { visible: false }
-        });
-
-        // O "Músculo" que vai encolher com o choque (INVISÍVEL)
-        const musculo = Constraint.create({
-            bodyA: torso, pointA: { x: 0, y: 150 }, // Ponto fixo abaixo
-            bodyB: canela, pointB: { x: 0, y: 0 },
-            stiffness: 0.02, length: 150, render: { visible: false }
-        });
-
-        Composite.add(engine.world, [torso, coxa, canela, quadril, joelho, musculo]);
-
-        Render.run(render);
-        const runner = Runner.create();
-        Runner.run(runner, engine);
-
-        // Lógica dos Sliders interagindo DIRETAMENTE com a física
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
         const sliderAnodo = document.getElementById('slider-anodo');
-        const sliderCatodo = document.getElementById('slider-catodo');
-        const displayDdp = document.getElementById('val-ddp');
+        const valAnodo = document.getElementById('val-anodo');
+        const valDdp = document.getElementById('val-ddp');
 
-        function atualizarFisica() {
-            let anodo = parseFloat(sliderAnodo.value);
-            let catodo = parseFloat(sliderCatodo.value);
-            let ddp = Math.abs(catodo - anodo);
+        const CATODO = 0.34; // Fixo
+        let time = 0; // Controla o andamento da animação
+
+        function drawScene(ddp) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Desenhar os "Eletrodos" no fundo
+            ctx.fillStyle = '#C0C0C0'; ctx.fillRect(80, 200, 40, 100); // Zinco
+            ctx.fillStyle = '#B87333'; ctx.fillRect(480, 200, 40, 100); // Cobre
             
-            document.getElementById('val-anodo').innerText = anodo.toFixed(2) + ' V';
-            document.getElementById('val-catodo').innerText = catodo.toFixed(2) + ' V';
-            displayDdp.innerText = ddp.toFixed(2) + ' V';
+            // Fios conectando à rã
+            ctx.beginPath(); ctx.moveTo(100, 200); ctx.quadraticCurveTo(100, 100, 250, 180); 
+            ctx.strokeStyle = '#888'; ctx.lineWidth = 3; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(500, 200); ctx.quadraticCurveTo(500, 100, 350, 180); ctx.stroke();
 
-            // Se a ddp passar de 0.5V, a perna contrai
+            // 2. A MÁGICA DA AGITAÇÃO: Matemática pura baseada na ddp
+            let anguloBase = Math.PI / 8; // Repouso
+            let variacao = 0;
+
             if (ddp > 0.5) {
-                // Quanto maior a ddp, mais curto o músculo fica (contração mais forte)
-                musculo.length = Math.max(50, 150 - (ddp * 40)); 
-            } else {
-                musculo.length = 150; // Repouso
+                // Intensidade aumenta conforme a ddp passa de 0.5
+                let intensidade = ddp - 0.5; 
+                
+                // Amplitude = o quão alto a perna levanta
+                let amplitude = intensidade * 0.4; 
+                
+                // Frequência = o quão rápido ela treme (aumenta com a ddp)
+                let frequencia = intensidade * 20; 
+                
+                variacao = Math.sin(time * frequencia) * amplitude;
+                
+                // Impede que a perna dobre para baixo (atravessando a mesa)
+                if (variacao < 0) variacao = variacao * 0.2; 
             }
+
+            // Calculando as posições das articulações
+            let anguloCoxa = anguloBase + variacao;
+            // A canela dobra ainda mais que a coxa
+            let anguloCanela = anguloCoxa + (Math.PI / 6) + (variacao * 1.5);
+
+            let troncoX = 180, troncoY = 180;
+            let coxaX = troncoX + 90, coxaY = troncoY;
+            
+            let joelhoX = coxaX + Math.cos(anguloCoxa) * 90;
+            let joelhoY = coxaY - Math.sin(anguloCoxa) * 90;
+
+            let peX = joelhoX + Math.cos(anguloCanela) * 80;
+            let peY = joelhoY - Math.sin(anguloCanela) * 80;
+
+            // 3. Desenhando a Rã (Linhas limpas e arredondadas)
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Tronco
+            ctx.beginPath(); ctx.moveTo(troncoX, troncoY); ctx.lineTo(coxaX, coxaY);
+            ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 26; ctx.stroke();
+
+            // Coxa
+            ctx.beginPath(); ctx.moveTo(coxaX, coxaY); ctx.lineTo(joelhoX, joelhoY);
+            ctx.strokeStyle = '#4CAF50'; ctx.lineWidth = 22; ctx.stroke();
+
+            // Canela
+            ctx.beginPath(); ctx.moveTo(joelhoX, joelhoY); ctx.lineTo(peX, peY);
+            ctx.strokeStyle = '#81C784'; ctx.lineWidth = 16; ctx.stroke();
         }
 
-        sliderAnodo.addEventListener('input', atualizarFisica);
-        sliderCatodo.addEventListener('input', atualizarFisica);
-        atualizarFisica(); // Inicia com o valor padrão
+        // Loop de animação contínuo (60 frames por segundo)
+        function animate() {
+            let anodo = parseFloat(sliderAnodo.value);
+            let ddp = CATODO - anodo; // Calcula a voltagem atual
+            
+            // Atualiza os textos na tela
+            valAnodo.innerText = anodo.toFixed(2) + ' V';
+            valDdp.innerText = ddp.toFixed(2) + ' V';
+
+            // Desenha a rã com a ddp atual
+            drawScene(ddp);
+            
+            time += 0.05; // O tempo passa
+            requestAnimationFrame(animate); // Chama o próximo frame
+        }
+
+        animate(); // Inicia o loop
     </script>
 </body>
 </html>
 """
 
-# Renderiza a página HTML completa dentro do Streamlit
-components.html(html_code, height=700)
+components.html(html_code, height=650)
