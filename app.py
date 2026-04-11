@@ -77,4 +77,36 @@ html_code = """
         const runner = Runner.create();
         Runner.run(runner, engine);
 
-        // Lógica dos Sliders interag
+        // Lógica dos Sliders interagindo DIRETAMENTE com a física
+        const sliderAnodo = document.getElementById('slider-anodo');
+        const sliderCatodo = document.getElementById('slider-catodo');
+        const displayDdp = document.getElementById('val-ddp');
+
+        function atualizarFisica() {
+            let anodo = parseFloat(sliderAnodo.value);
+            let catodo = parseFloat(sliderCatodo.value);
+            let ddp = Math.abs(catodo - anodo);
+            
+            document.getElementById('val-anodo').innerText = anodo.toFixed(2) + ' V';
+            document.getElementById('val-catodo').innerText = catodo.toFixed(2) + ' V';
+            displayDdp.innerText = ddp.toFixed(2) + ' V';
+
+            // Se a ddp passar de 0.5V, a perna contrai
+            if (ddp > 0.5) {
+                // Quanto maior a ddp, mais curto o músculo fica (contração mais forte)
+                musculo.length = Math.max(50, 150 - (ddp * 40)); 
+            } else {
+                musculo.length = 150; // Repouso
+            }
+        }
+
+        sliderAnodo.addEventListener('input', atualizarFisica);
+        sliderCatodo.addEventListener('input', atualizarFisica);
+        atualizarFisica(); // Inicia com o valor padrão
+    </script>
+</body>
+</html>
+"""
+
+# Renderiza a página HTML completa dentro do Streamlit
+components.html(html_code, height=700)
