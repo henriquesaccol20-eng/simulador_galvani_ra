@@ -28,12 +28,12 @@ html_code = """
                 <input type="range" disabled value="0.34" min="-2" max="2">
             </div>
             <div class="controle">
-                <label>Anodo (Zinco - Ajustável): <span id="val-anodo">-0.76 V</span></label>
-                <input type="range" id="slider-anodo" min="-3" max="0" step="0.05" value="-0.76">
+                <label>Anodo (Zinco - Ajustável): <span id="val-anodo">0.00 V</span></label>
+                <input type="range" id="slider-anodo" min="-3" max="0" step="0.05" value="0.00">
             </div>
         </div>
         <div style="text-align: center; margin-top: 10px; font-size: 16px;">
-            Diferença de Potencial (ddp): <span class="destaque" id="val-ddp">1.10 V</span>
+            Diferença de Potencial (ddp): <span class="destaque" id="val-ddp">0.34 V</span>
         </div>
     </div>
 
