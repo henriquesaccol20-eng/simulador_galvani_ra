@@ -1,47 +1,77 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
+import streamlit.components.v1 as components
 
-# Configurações do Título
-st.set_page_config(page_title="Experimento de Galvani", layout="centered")
-st.title("⚡ Simulação: O Galvanismo e a Força Vital")
-st.write("Mova os sliders para alterar o potencial dos metais e observar a reação da rã.")
+st.set_page_config(page_title="Biofísica: Experimento de Galvani", layout="wide")
 
-# Controles de voltagem
-st.sidebar.header("Parâmetros dos Metais")
+st.title("⚡ Simulação Física: O Galvanismo")
+st.markdown("Mova os sliders para gerar uma ddp e aplicar um 'choque' na rã.")
+
+# Barra lateral com os controles
+st.sidebar.header("Configurações de Voltagem")
 v_anodo = st.sidebar.slider("Potencial Anodo (Zinco) [V]", -2.0, 2.0, -0.76)
 v_catodo = st.sidebar.slider("Potencial Catodo (Cobre) [V]", -2.0, 2.0, 0.34)
-
 ddp = v_catodo - v_anodo
 
-# Interface de resultados
-st.metric("Diferença de Potencial (ddp)", f"{ddp:.2f} V")
+st.sidebar.metric("Diferença de Potencial", f"{ddp:.2f} V")
 
-# Lógica do Desenho (Matplotlib)
-fig, ax = plt.subplots(figsize=(6, 4))
+# O "Motor" de Física (Matter.js + HTML/JS)
+html_code = f"""
+<div id="canvas-container" style="width: 100%; height: 500px; background: #f0f2f6; border-radius: 10px;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+    const {{ Engine, Render, Runner, Bodies, Composite, Constraint, Vector }} = Matter;
+    
+    const engine = Engine.create();
+    const render = Render.create({{
+        element: document.getElementById('canvas-container'),
+        engine: engine,
+        options: {{ width: 800, height: 500, wireframes: false, background: '#f0f2f6' }}
+    }});
 
-# Se a ddp for maior que 0.2V, a rã contrai (chuta)
-limiar = 0.2
-angulo = np.deg2rad(70) if abs(ddp) > limiar else np.deg2rad(20)
+    // Chão
+    const ground = Bodies.rectangle(400, 480, 810, 60, {{ isStatic: true, render: {{ fillStyle: '#2ecc71' }} }});
+    
+    // Partes da Perna (Corpo, Coxa, Canela)
+    const body = Bodies.rectangle(300, 200, 100, 40, {{ isStatic: true, render: {{ fillStyle: '#1e5d2f' }} }});
+    const coxa = Bodies.rectangle(380, 200, 80, 20, {{ render: {{ fillStyle: '#27ae60' }} }});
+    const canela = Bodies.rectangle(460, 200, 90, 15, {{ render: {{ fillStyle: '#2ecc71' }} }});
 
-# Coordenadas do desenho da rã (Linhas verdes)
-ax.plot([0, 0.8], [1, 1], color='#4CAF50', lw=10) # Corpo
-ax.plot([0.8, 0.8 + 0.5*np.cos(angulo)], [1, 1 + 0.5*np.sin(angulo)], color='#4CAF50', lw=8) # Coxa
-ax.plot([0.8 + 0.5*np.cos(angulo), 1.6], [1 + 0.5*np.sin(angulo), 1.2 if abs(ddp) > limiar else 0.7], color='#4CAF50', lw=5) # Canela
+    // Articulações (Constraints)
+    const joint1 = Constraint.create({{
+        bodyA: body, pointA: {{ x: 40, y: 0 }},
+        bodyB: coxa, pointB: {{ x: -30, y: 0 }},
+        stiffness: 0.8, length: 5
+    }});
+    
+    const joint2 = Constraint.create({{
+        bodyA: coxa, pointA: {{ x: 30, y: 0 }},
+        bodyB: canela, pointB: {{ x: -40, y: 0 }},
+        stiffness: 0.8, length: 5
+    }});
 
-# Desenho dos eletrodos
-ax.scatter([0.1], [1.1], color='silver', s=250, label='Zinco (Anodo)')
-ax.scatter([1.5], [0.8], color='#B87333', s=250, label='Cobre (Catodo)')
+    // Mola que mantém a perna em repouso
+    const muscle = Constraint.create({{
+        bodyA: body, pointA: {{ x: 80, y: 50 }},
+        bodyB: canela, pointB: {{ x: 0, y: 0 }},
+        stiffness: 0.01, length: 150,
+        render: {{ visible: false }}
+    }});
 
-# Ajustes do gráfico
-ax.set_xlim(-0.2, 2.0)
-ax.set_ylim(0, 2.0)
-ax.axis('off')
-ax.legend(loc='upper right')
+    Composite.add(engine.world, [ground, body, coxa, canela, joint1, joint2, muscle]);
 
-st.pyplot(fig)
+    // Lógica do Choque baseado na ddp do Streamlit
+    const ddpVal = {ddp};
+    if (Math.abs(ddpVal) > 0.5) {{
+        // Aplica uma força súbita para cima e para frente (o chute)
+        Matter.Body.applyForce(canela, canela.position, {{ x: 0.05 * Math.abs(ddpVal), y: -0.08 * Math.abs(ddpVal) }});
+    }}
 
-if abs(ddp) > limiar:
-    st.success("⚠️ CORRENTE DETECTADA: O músculo despolarizou e contraiu!")
-else:
-    st.info("Músculo em repouso. A ddp é insuficiente.")
+    Render.run(render);
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+</script>
+"""
+
+components.html(html_code, height=520)
+
+st.info("💡 **Física em ação:** O motor Matter.js calcula a gravidade e a resistência das articulações. Quando a ddp ultrapassa 0.5V, um vetor de força é aplicado na 'canela', simulando a contração muscular galvânica.")
