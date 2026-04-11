@@ -3,7 +3,6 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Galvani: Reação Simultânea", layout="centered")
 
-# O painel e a animação agora mostram duas pernas reagindo ao mesmo tempo em Canvas
 html_code = """
 <!DOCTYPE html>
 <html>
@@ -90,52 +89,14 @@ html_code = """
             ctx.fillStyle = '#C0C0C0'; ctx.fillRect(100, 250, 40, 100); // Zinco
             ctx.fillStyle = '#B87333'; ctx.fillRect(530, 250, 40, 100); // Cobre
             
-            // Fios conectando às rãs (simplificados para não poluir)
+            // Fios conectando
             ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.moveTo(120, 250); ctx.quadraticCurveTo(120, 100, 250, 150); ctx.stroke(); // Para Rã 1
-            ctx.beginPath(); ctx.moveTo(120, 250); ctx.quadraticCurveTo(120, 100, 250, 250); ctx.stroke(); // Para Rã 2
-            
-            ctx.beginPath(); ctx.moveTo(550, 250); ctx.quadraticCurveTo(550, 100, 350, 150); ctx.stroke(); // De Rã 1
-            ctx.beginPath(); ctx.moveTo(550, 250); ctx.quadraticCurveTo(550, 100, 350, 250); ctx.stroke(); // De Rã 2
+            ctx.beginPath(); ctx.moveTo(120, 250); ctx.quadraticCurveTo(120, 100, 200, 200); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(550, 250); ctx.quadraticCurveTo(550, 100, 350, 200); ctx.stroke(); 
 
             // 2. A MÁGICA DA AGITAÇÃO SIMULTÂNEA
             let variacao = 0;
 
             if (ddp > 0.5) {
                 let intensidade = ddp - 0.5; 
-                let amplitude = intensidade * 0.4; 
-                let frequencia = intensidade * 20; 
-                variacao = Math.sin(time * frequencia) * amplitude;
-                if (variacao < 0) variacao = variacao * 0.2; // Evita pular para baixo
-            }
-
-            // 3. Desenhar as DUAS Rãs (com a mesma variação calculada)
-            // Rã 1 (Topo)
-            drawLeg(ctx, 180, 150, variacao);
-            // Rã 2 (Baixo)
-            drawLeg(ctx, 180, 250, variacao);
-        }
-
-        // Loop de animação contínuo (60 frames por segundo)
-        function animate() {
-            let anodo = parseFloat(sliderAnodo.value);
-            let ddp = CATODO - anodo; // Calcula a voltagem atual
-            
-            // Atualiza os textos na tela
-            valAnodo.innerText = anodo.toFixed(2) + ' V';
-            valDdp.innerText = ddp.toFixed(2) + ' V';
-
-            // Desenha a rã com a ddp atual
-            drawScene(ddp);
-            
-            time += 0.05; // O tempo passa
-            requestAnimationFrame(animate); // Chama o próximo frame
-        }
-
-        animate(); // Inicia o loop
-    </script>
-</body>
-</html>
-"""
-
-components.html(html_code, height=750)
+                let amplitude
