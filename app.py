@@ -1,69 +1,80 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
+import streamlit.components.v1 as components
 
-# Configuração da página
-st.set_page_config(page_title="Biofísica UFSM - Galvani", layout="centered")
+st.set_page_config(page_title="Simulador de Galvani", layout="wide")
 
-st.title("⚡ Simulação: O Galvanismo")
-st.markdown("Mova os sliders. Se a diferença de potencial (ddp) ultrapassar 0.5V, a perna sofre contração instantânea.")
+# O segredo: Colocar os sliders em HTML/JS junto com o motor de física para não recarregar a página.
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .painel { display: flex; gap: 30px; background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; width: 100%; max-width: 800px; justify-content: center;}
+        .controle { display: flex; flex-direction: column; align-items: center; }
+        input[type=range] { width: 150px; cursor: pointer; }
+        .ddp-display { font-size: 24px; font-weight: bold; color: #d32f2f; display: flex; align-items: center; margin-left: 20px;}
+        #canvas-container { border-radius: 12px; overflow: hidden; border: 2px solid #eee; }
+    </style>
+</head>
+<body>
 
-# Controles
-col1, col2 = st.columns(2)
-with col1:
-    v_anodo = st.slider("Potencial Zinco (Anodo) [V]", -2.0, 2.0, -0.76)
-with col2:
-    v_catodo = st.slider("Potencial Cobre (Catodo) [V]", -2.0, 2.0, 0.34)
+    <div class="painel">
+        <div class="controle">
+            <label>Anodo (Zn): <b id="val-anodo">-0.76 V</b></label>
+            <input type="range" id="slider-anodo" min="-3" max="3" step="0.1" value="-0.76">
+        </div>
+        <div class="controle">
+            <label>Catodo (Cu): <b id="val-catodo">0.34 V</b></label>
+            <input type="range" id="slider-catodo" min="-3" max="3" step="0.1" value="0.34">
+        </div>
+        <div class="ddp-display">
+            ddp: <span id="val-ddp" style="margin-left: 8px;">1.10 V</span>
+        </div>
+    </div>
 
-ddp = v_catodo - v_anodo
-st.metric("Diferença de Potencial (ddp)", f"{ddp:.2f} V")
+    <div id="canvas-container"></div>
 
-# Visualização limpa com Matplotlib
-fig, ax = plt.subplots(figsize=(7, 4))
+    <script>
+        const { Engine, Render, Runner, Bodies, Composite, Constraint } = Matter;
+        
+        const engine = Engine.create();
+        const render = Render.create({
+            element: document.getElementById('canvas-container'),
+            engine: engine,
+            options: { width: 800, height: 400, wireframes: false, background: '#fafafa' }
+        });
 
-limiar = 0.5
-esta_contraindo = abs(ddp) > limiar
+        // Partes da Rã (Limpo, sem contornos)
+        const torso = Bodies.rectangle(300, 250, 100, 40, { isStatic: true, render: { fillStyle: '#2e7d32' }, collisionFilter: { group: -1 } });
+        const coxa = Bodies.rectangle(380, 250, 80, 30, { render: { fillStyle: '#4caf50' }, collisionFilter: { group: -1 } });
+        const canela = Bodies.rectangle(450, 250, 80, 20, { render: { fillStyle: '#81c784' }, collisionFilter: { group: -1 } });
 
-# Cálculo do ângulo baseado na ddp
-if esta_contraindo:
-    # Quanto maior a voltagem, mais a perna levanta
-    angulo_coxa = np.deg2rad(30 + (abs(ddp) * 30)) 
-else:
-    # Posição de repouso
-    angulo_coxa = np.deg2rad(30)
+        // Articulações INVISÍVEIS (render: false)
+        const quadril = Constraint.create({
+            bodyA: torso, pointA: { x: 40, y: 0 },
+            bodyB: coxa, pointB: { x: -30, y: 0 },
+            stiffness: 0.9, length: 0, render: { visible: false }
+        });
+        
+        const joelho = Constraint.create({
+            bodyA: coxa, pointA: { x: 30, y: 0 },
+            bodyB: canela, pointB: { x: -30, y: 0 },
+            stiffness: 0.9, length: 0, render: { visible: false }
+        });
 
-# Coordenadas matemáticas das linhas
-# 1. Corpo
-corpo_x, corpo_y = [0, 1], [1, 1]
+        // O "Músculo" que vai encolher com o choque (INVISÍVEL)
+        const musculo = Constraint.create({
+            bodyA: torso, pointA: { x: 0, y: 150 }, // Ponto fixo abaixo
+            bodyB: canela, pointB: { x: 0, y: 0 },
+            stiffness: 0.02, length: 150, render: { visible: false }
+        });
 
-# 2. Coxa (depende do ângulo calculado)
-coxa_x = [1, 1 + 0.6 * np.cos(angulo_coxa)]
-coxa_y = [1, 1 - 0.6 * np.sin(angulo_coxa)]
+        Composite.add(engine.world, [torso, coxa, canela, quadril, joelho, musculo]);
 
-# 3. Canela (dobra dependendo se está contraindo ou não)
-canela_x = [coxa_x[1], coxa_x[1] + 0.5]
-canela_y = [coxa_y[1], coxa_y[1] + (0.3 if esta_contraindo else -0.2)]
+        Render.run(render);
+        const runner = Runner.create();
+        Runner.run(runner, engine);
 
-# Desenhando com linhas grossas e pontas arredondadas (sem juntas feias)
-ax.plot(corpo_x, corpo_y, color='#2E7D32', lw=12, solid_capstyle='round', label='Tronco')
-ax.plot(coxa_x, coxa_y, color='#4CAF50', lw=10, solid_capstyle='round', label='Coxa')
-ax.plot(canela_x, canela_y, color='#81C784', lw=8, solid_capstyle='round', label='Canela')
-
-# Desenhando os metais
-ax.scatter([0.2], [1.3], color='#B0BEC5', s=400, zorder=5, label='Zinco')
-ax.scatter([1.8], [0.8], color='#FF9800', s=400, zorder=5, label='Cobre')
-
-# Estética do Gráfico
-ax.set_xlim(-0.2, 2.5)
-ax.set_ylim(0, 2.0)
-ax.axis('off') # Tira as bordas
-ax.legend(loc='upper right')
-
-# Renderiza no Streamlit
-st.pyplot(fig)
-
-# Mensagens de status
-if esta_contraindo:
-    st.success("⚡ CHOQUE DETECTADO: O limiar de despolarização foi rompido e o músculo contraiu.")
-else:
-    st.info("Repouso: A voltagem atual é insuficiente para gerar um impulso nervoso.")
+        // Lógica dos Sliders interag
