@@ -18,7 +18,7 @@ html_code = """
         input[type=range]:disabled { cursor: not-allowed; opacity: 0.6; }
         .destaque { color: #d32f2f; font-size: 1.6em; font-weight: bold; }
         
-        /* Estilo do botão de choque */
+        /* Estilo do novo botão de choque */
         .btn-choque { background-color: #d32f2f; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s, transform 0.1s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-top: 15px;}
         .btn-choque:hover { background-color: #b71c1c; }
         .btn-choque:active { transform: scale(0.95); box-shadow: 0 2px 3px rgba(0,0,0,0.2);}
@@ -111,41 +111,40 @@ html_code = """
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
-            // Desenho do Tronco
             ctx.beginPath(); ctx.moveTo(troncoX, troncoY); ctx.lineTo(coxaX, coxaY);
             ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 26; ctx.stroke();
-            
-            // Desenho da Coxa
             ctx.beginPath(); ctx.moveTo(coxaX, coxaY); ctx.lineTo(joelhoX, joelhoY);
             ctx.strokeStyle = '#4CAF50'; ctx.lineWidth = 22; ctx.stroke();
-            
-            // Desenho da Canela
             ctx.beginPath(); ctx.moveTo(joelhoX, joelhoY); ctx.lineTo(peX, peY);
             ctx.strokeStyle = '#81C784'; ctx.lineWidth = 16; ctx.stroke();
 
-            // OS TRÊS DEDOS (Palitinhos na ponta da canela)
-            ctx.lineWidth = 5; 
-            ctx.strokeStyle = '#81C784';
+            // OS TRÊS DEDOS DA RÃ (Pezinhos Aumentados)
+            ctx.lineWidth = 6; // Ligeiramente mais grosso para visibilidade
+            ctx.strokeStyle = '#81C784'; 
 
+            // AUMENTADO: Comprimento e abertura dos dedos
             // Dedo Superior
-            let anguloDedo1 = anguloCanela - 0.4;
+            let anguloDedo1 = anguloCanela - 0.5; // Abertura maior
             ctx.beginPath();
             ctx.moveTo(peX, peY);
-            ctx.lineTo(peX + Math.cos(anguloDedo1) * 30, peY - Math.sin(anguloDedo1) * 30);
+            // Comprimento aumentado de 30 para 50
+            ctx.lineTo(peX + Math.cos(anguloDedo1) * 50, peY - Math.sin(anguloDedo1) * 50);
             ctx.stroke();
 
             // Dedo Central
             let anguloDedo2 = anguloCanela;
             ctx.beginPath();
             ctx.moveTo(peX, peY);
-            ctx.lineTo(peX + Math.cos(anguloDedo2) * 35, peY - Math.sin(anguloDedo2) * 35);
+            // Comprimento aumentado de 35 para 55
+            ctx.lineTo(peX + Math.cos(anguloDedo2) * 55, peY - Math.sin(anguloDedo2) * 55);
             ctx.stroke();
 
             // Dedo Inferior
-            let anguloDedo3 = anguloCanela + 0.4;
+            let anguloDedo3 = anguloCanela + 0.5; // Abertura maior
             ctx.beginPath();
             ctx.moveTo(peX, peY);
-            ctx.lineTo(peX + Math.cos(anguloDedo3) * 30, peY - Math.sin(anguloDedo3) * 30);
+            // Comprimento aumentado de 30 para 50
+            ctx.lineTo(peX + Math.cos(anguloDedo3) * 50, peY - Math.sin(anguloDedo3) * 50);
             ctx.stroke();
         }
 
