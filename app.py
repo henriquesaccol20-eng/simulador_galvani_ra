@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Galvani: Adaptação Muscular", layout="centered")
+st.set_page_config(page_title="Galvani: Alta Voltagem e Metais", layout="centered")
 
 html_code = """
 <!DOCTYPE html>
@@ -13,10 +13,10 @@ html_code = """
         .controles-flex { display: flex; justify-content: space-around; gap: 10px; }
         .controle { flex: 1; text-align: center; }
         .controle label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;}
-        .nome-metal { color: #1565C0; font-size: 16px; display: block; margin-bottom: 5px; min-height: 20px;}
-        input[type=range] { width: 90%; cursor: pointer; }
+        .nome-metal { color: #1565C0; font-size: 16px; display: block; margin-bottom: 5px; min-height: 40px; font-weight: bold; line-height: 1.2;}
+        input[type=range] { width: 95%; cursor: pointer; }
         input[type=range]:disabled { cursor: not-allowed; opacity: 0.6; }
-        .destaque { color: #d32f2f; font-size: 1.4em; font-weight: bold; }
+        .destaque { color: #d32f2f; font-size: 1.6em; font-weight: bold; }
         canvas { border: 2px solid #ddd; border-radius: 12px; background: #fafafa; }
     </style>
 </head>
@@ -29,14 +29,14 @@ html_code = """
                 <span class="nome-metal" style="color:#B87333;">Cobre (Cu)</span>
                 <span style="font-weight:bold;">+0.34 V</span>
                 <br><br>
-                <input type="range" disabled value="0.34" min="-2" max="2">
+                <input type="range" disabled value="0.34" min="-10" max="2">
             </div>
             <div class="controle">
-                <label>Anodo (Ajustável):</label>
+                <label>Anodo (Escala Expandida):</label>
                 <span class="nome-metal" id="nome-metal">Hidrogênio (H)</span>
                 <span id="val-anodo" style="font-weight:bold;">0.00 V</span>
                 <br><br>
-                <input type="range" id="slider-anodo" min="-0.45" max="0.00" step="0.05" value="0.00">
+                <input type="range" id="slider-anodo" min="-9.66" max="0.00" step="0.02" value="0.00">
             </div>
         </div>
         <div style="text-align: center; margin-top: 15px; font-size: 16px;">
@@ -56,35 +56,36 @@ html_code = """
 
         const CATODO = 0.34; 
         let time = 0; 
-        
-        // NOVAS VARIÁVEIS PARA O EFEITO DE ACOMODAÇÃO (Espasmo temporário)
         let energiaEspasmo = 0;
         let ddpAnterior = CATODO - parseFloat(sliderAnodo.value);
 
+        // Mapeamento expandido de materiais por Potencial de Redução
         function obterNomeMetal(voltagem) {
             let v = Math.round(voltagem * 100) / 100;
-            if (v === 0.00) return "Hidrogênio (H)";
-            if (v === -0.05) return "Liga Intermediária";
-            if (v === -0.10) return "Liga Intermediária";
-            if (v === -0.15) return "Estanho (Sn) / Chumbo (Pb)";
-            if (v === -0.20) return "Liga Intermediária";
-            if (v === -0.25) return "Níquel (Ni)";
-            if (v === -0.30) return "Cobalto (Co)";
-            if (v === -0.35) return "Liga Intermediária";
-            if (v === -0.40) return "Cádmio (Cd)";
-            if (v === -0.45) return "Ferro (Fe)";
-            return "Desconhecido";
+            
+            if (v >= -0.05) return "Hidrogênio (H)";
+            if (v >= -0.15) return "Chumbo (Pb) / Estanho (Sn)";
+            if (v >= -0.28) return "Níquel (Ni)";
+            if (v >= -0.35) return "Cobalto (Co)";
+            if (v >= -0.60) return "Ferro (Fe)";
+            if (v >= -1.00) return "Zinco (Zn)";
+            if (v >= -1.40) return "Manganês (Mn)";
+            if (v >= -2.00) return "Alumínio (Al)";
+            if (v >= -2.50) return "Magnésio (Mg)";
+            if (v >= -2.80) return "Sódio (Na)";
+            if (v >= -3.00) return "Potássio (K)";
+            if (v >= -3.20) return "Lítio (Li)<br><small>(Limite Químico)</small>";
+            
+            // Acima do limite do Lítio, simulamos associação de pilhas
+            return "Associação de Células<br><small>(Alta Voltagem)</small>";
         }
 
-        // O SEGREDO: O evento 'input' detecta a variação.
-        // Toda vez que você move o slider, ele injeta energia no músculo.
         sliderAnodo.addEventListener('input', function() {
             let ddpAtual = CATODO - parseFloat(this.value);
-            
-            // Se rompeu o limiar de 0.5V E a voltagem está variando
             if (ddpAtual > 0.5 && Math.abs(ddpAtual - ddpAnterior) > 0.01) {
                 let intensidade = ddpAtual - 0.5;
-                energiaEspasmo = intensidade * 0.5; // Recarrega o espasmo
+                // A força do espasmo continua proporcional à ddp
+                energiaEspasmo = intensidade * 0.5; 
             }
             ddpAnterior = ddpAtual;
         });
@@ -93,8 +94,7 @@ html_code = """
             let anguloBase = Math.PI / 8; 
             let anguloCoxa = anguloBase + variacao;
             let anguloCanela = anguloCoxa + (Math.PI / 6) + (variacao * 1.5);
-
-            let troncoX = 0 + xOffset, troncoY = 0 + yOffset;
+            let troncoX = xOffset, troncoY = yOffset;
             let coxaX = troncoX + 90, coxaY = troncoY;
             let joelhoX = coxaX + Math.cos(anguloCoxa) * 90;
             let joelhoY = coxaY - Math.sin(anguloCoxa) * 90;
@@ -103,21 +103,16 @@ html_code = """
 
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            
             ctx.beginPath(); ctx.moveTo(troncoX, troncoY); ctx.lineTo(coxaX, coxaY);
             ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 26; ctx.stroke();
-
             ctx.beginPath(); ctx.moveTo(coxaX, coxaY); ctx.lineTo(joelhoX, joelhoY);
             ctx.strokeStyle = '#4CAF50'; ctx.lineWidth = 22; ctx.stroke();
-
             ctx.beginPath(); ctx.moveTo(joelhoX, joelhoY); ctx.lineTo(peX, peY);
             ctx.strokeStyle = '#81C784'; ctx.lineWidth = 16; ctx.stroke();
         }
 
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Eletrodos e Fios
             ctx.fillStyle = '#C0C0C0'; ctx.fillRect(100, 250, 40, 100); 
             ctx.fillStyle = '#B87333'; ctx.fillRect(530, 250, 40, 100); 
             ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
@@ -125,24 +120,16 @@ html_code = """
             ctx.beginPath(); ctx.moveTo(550, 250); ctx.quadraticCurveTo(550, 100, 350, 200); ctx.stroke(); 
 
             let variacao = 0;
-
-            // Se ainda tem energia de espasmo, a perna se move
             if (energiaEspasmo > 0.001) {
                 variacao = Math.sin(time * 30) * energiaEspasmo;
                 if (variacao < 0) variacao = variacao * 0.2; 
-                
-                // DECAIMENTO: Perde 6% da energia a cada quadro da animação.
-                // Isso cria o efeito transitório perfeito. Parou a mão, a rã para.
                 energiaEspasmo *= 0.94; 
             } else {
-                energiaEspasmo = 0; // Repouso
+                energiaEspasmo = 0;
             }
 
-            // A "Pelve"
             ctx.beginPath(); ctx.moveTo(180, 150); ctx.lineTo(180, 250); 
             ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.stroke();
-
-            // As rãs
             drawLeg(ctx, 180, 150, variacao); 
             drawLeg(ctx, 180, 250, variacao); 
         }
@@ -150,21 +137,14 @@ html_code = """
         function animate() {
             let anodo = parseFloat(sliderAnodo.value);
             let ddp = CATODO - anodo; 
-            
             valAnodo.innerText = anodo.toFixed(2) + ' V';
             valDdp.innerText = ddp.toFixed(2) + ' V';
-            nomeMetalDisplay.innerText = obterNomeMetal(anodo);
-
+            nomeMetalDisplay.innerHTML = obterNomeMetal(anodo);
             drawScene();
-            
             time += 0.05; 
             requestAnimationFrame(animate); 
         }
-
         animate(); 
     </script>
 </body>
 </html>
-"""
-
-components.html(html_code, height=750)
