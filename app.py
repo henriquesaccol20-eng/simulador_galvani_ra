@@ -121,13 +121,12 @@ html_code = """
 
             let variacao = 0;
             if (energiaEspasmo > 0.001) {
-                // AQUI ESTÁ A MÁGICA DA VELOCIDADE:
-                // Mudei de time * 30 para time * 12 (movimento mais lento e visível)
-                variacao = Math.sin(time * 12) * energiaEspasmo;
+                // VELOCIDADE 6x MENOR: Mudei de time * 12 para time * 2
+                variacao = Math.sin(time * 2) * energiaEspasmo;
                 if (variacao < 0) variacao = variacao * 0.2; 
                 
-                // Mudei o decaimento de 0.94 para 0.97 (relaxa mais devagar)
-                energiaEspasmo *= 0.97; 
+                // DECAIMENTO MAIS SUAVE: Mudei de 0.97 para 0.985
+                energiaEspasmo *= 0.985; 
             } else {
                 energiaEspasmo = 0; 
             }
