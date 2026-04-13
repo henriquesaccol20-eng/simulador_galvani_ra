@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Galvani: Alta Voltagem e Metais", layout="centered")
+st.set_page_config(page_title="Galvani: Alta Voltagem", layout="centered")
 
 html_code = """
 <!DOCTYPE html>
@@ -56,10 +56,12 @@ html_code = """
 
         const CATODO = 0.34; 
         let time = 0; 
+        
+        // Variáveis de Acomodação (a rã só treme enquanto a voltagem muda)
         let energiaEspasmo = 0;
         let ddpAnterior = CATODO - parseFloat(sliderAnodo.value);
 
-        // Mapeamento expandido de materiais por Potencial de Redução
+        // Mapeamento de materiais conforme o Eº de redução diminui
         function obterNomeMetal(voltagem) {
             let v = Math.round(voltagem * 100) / 100;
             
@@ -76,16 +78,18 @@ html_code = """
             if (v >= -3.00) return "Potássio (K)";
             if (v >= -3.20) return "Lítio (Li)<br><small>(Limite Químico)</small>";
             
-            // Acima do limite do Lítio, simulamos associação de pilhas
-            return "Associação de Células<br><small>(Alta Voltagem)</small>";
+            // Quando a voltagem é irreal para um único metal (abaixo de -3.20V)
+            return "Associação de Células<br><small>(Bateria de Alta Voltagem)</small>";
         }
 
+        // Lógica de injeção de energia (só injeta energia se o slider se mover)
         sliderAnodo.addEventListener('input', function() {
             let ddpAtual = CATODO - parseFloat(this.value);
+            
+            // Se rompeu o limiar de 0.5V E a voltagem está variando
             if (ddpAtual > 0.5 && Math.abs(ddpAtual - ddpAnterior) > 0.01) {
                 let intensidade = ddpAtual - 0.5;
-                // A força do espasmo continua proporcional à ddp
-                energiaEspasmo = intensidade * 0.5; 
+                energiaEspasmo = intensidade * 0.5; // Força aumenta com a ddp
             }
             ddpAnterior = ddpAtual;
         });
@@ -113,6 +117,8 @@ html_code = """
 
         function drawScene() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Eletrodos e Fios
             ctx.fillStyle = '#C0C0C0'; ctx.fillRect(100, 250, 40, 100); 
             ctx.fillStyle = '#B87333'; ctx.fillRect(530, 250, 40, 100); 
             ctx.strokeStyle = '#888'; ctx.lineWidth = 3;
@@ -123,13 +129,15 @@ html_code = """
             if (energiaEspasmo > 0.001) {
                 variacao = Math.sin(time * 30) * energiaEspasmo;
                 if (variacao < 0) variacao = variacao * 0.2; 
-                energiaEspasmo *= 0.94; 
+                energiaEspasmo *= 0.94; // Decaimento da energia (fator de acomodação)
             } else {
-                energiaEspasmo = 0;
+                energiaEspasmo = 0; // Repouso
             }
 
+            // A "Pelve" central conectando as rãs
             ctx.beginPath(); ctx.moveTo(180, 150); ctx.lineTo(180, 250); 
             ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.stroke();
+            
             drawLeg(ctx, 180, 150, variacao); 
             drawLeg(ctx, 180, 250, variacao); 
         }
@@ -137,14 +145,20 @@ html_code = """
         function animate() {
             let anodo = parseFloat(sliderAnodo.value);
             let ddp = CATODO - anodo; 
+            
             valAnodo.innerText = anodo.toFixed(2) + ' V';
             valDdp.innerText = ddp.toFixed(2) + ' V';
             nomeMetalDisplay.innerHTML = obterNomeMetal(anodo);
+            
             drawScene();
             time += 0.05; 
             requestAnimationFrame(animate); 
         }
+        
         animate(); 
     </script>
 </body>
 </html>
+"""
+
+components.html(html_code, height=750)
