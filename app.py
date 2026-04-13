@@ -142,4 +142,29 @@ html_code = """
             ctx.beginPath(); ctx.moveTo(180, 150); ctx.lineTo(180, 250); 
             ctx.strokeStyle = '#2E7D32'; ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.stroke();
 
-            // As
+            // As rãs
+            drawLeg(ctx, 180, 150, variacao); 
+            drawLeg(ctx, 180, 250, variacao); 
+        }
+
+        function animate() {
+            let anodo = parseFloat(sliderAnodo.value);
+            let ddp = CATODO - anodo; 
+            
+            valAnodo.innerText = anodo.toFixed(2) + ' V';
+            valDdp.innerText = ddp.toFixed(2) + ' V';
+            nomeMetalDisplay.innerText = obterNomeMetal(anodo);
+
+            drawScene();
+            
+            time += 0.05; 
+            requestAnimationFrame(animate); 
+        }
+
+        animate(); 
+    </script>
+</body>
+</html>
+"""
+
+components.html(html_code, height=750)
