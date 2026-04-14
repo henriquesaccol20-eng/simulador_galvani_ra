@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Galvani: Alta Voltagem e Metais", layout="centered")
+st.set_page_config(page_title="Galvani: Potenciais de Redução", layout="centered")
 
 html_code = """
 <!DOCTYPE html>
@@ -13,12 +13,12 @@ html_code = """
         .controles-flex { display: flex; justify-content: space-around; gap: 10px; }
         .controle { flex: 1; text-align: center; }
         .controle label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;}
-        .nome-metal { color: #1565C0; font-size: 16px; display: block; margin-bottom: 5px; min-height: 40px; font-weight: bold; line-height: 1.2;}
+        .nome-metal { color: #1565C0; font-size: 16px; display: block; margin-bottom: 5px; min-height: 25px; font-weight: bold; line-height: 1.2;}
+        .valor-reducao { font-weight: bold; color: #333; font-size: 15px; }
         input[type=range] { width: 95%; cursor: pointer; }
         input[type=range]:disabled { cursor: not-allowed; opacity: 0.6; }
         .destaque { color: #d32f2f; font-size: 1.6em; font-weight: bold; }
         
-        /* Estilo do novo botão de choque */
         .btn-choque { background-color: #d32f2f; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s, transform 0.1s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-top: 15px;}
         .btn-choque:hover { background-color: #b71c1c; }
         .btn-choque:active { transform: scale(0.95); box-shadow: 0 2px 3px rgba(0,0,0,0.2);}
@@ -33,19 +33,19 @@ html_code = """
             <div class="controle">
                 <label>Catodo (Fixo):</label>
                 <span class="nome-metal" style="color:#B87333;">Cobre (Cu)</span>
-                <span style="font-weight:bold;">+0.34 V</span>
+                <span class="valor-reducao">Eº de Redução: +0.34 V</span>
                 <br><br>
-                <input type="range" disabled value="0.34" min="-10" max="2">
+                <input type="range" disabled value="0.34" min="-2" max="2">
             </div>
             <div class="controle">
-                <label>Anodo (Escala Expandida):</label>
+                <label>Anodo (Ajustável):</label>
                 <span class="nome-metal" id="nome-metal">Hidrogênio (H)</span>
-                <span id="val-anodo" style="font-weight:bold;">0.00 V</span>
+                <span id="val-anodo" class="valor-reducao">Eº de Redução: 0.00 V</span>
                 <br><br>
-                <input type="range" id="slider-anodo" min="-9.66" max="0.00" step="0.02" value="0.00">
+                <input type="range" id="slider-anodo" min="-1.92" max="0.00" step="0.01" value="0.00">
             </div>
         </div>
-        <div style="text-align: center; margin-top: 10px; font-size: 16px;">
+        <div style="text-align: center; margin-top: 15px; font-size: 16px;">
             Diferença de Potencial (ddp): <span class="destaque" id="val-ddp">0.34 V</span>
         </div>
         <div style="text-align: center;">
@@ -76,16 +76,13 @@ html_code = """
             if (v >= -0.15) return "Chumbo (Pb) / Estanho (Sn)";
             if (v >= -0.28) return "Níquel (Ni)";
             if (v >= -0.35) return "Cobalto (Co)";
-            if (v >= -0.60) return "Ferro (Fe)";
-            if (v >= -1.00) return "Zinco (Zn)";
-            if (v >= -1.40) return "Manganês (Mn)";
-            if (v >= -2.00) return "Alumínio (Al)";
-            if (v >= -2.50) return "Magnésio (Mg)";
-            if (v >= -2.80) return "Sódio (Na)";
-            if (v >= -3.00) return "Potássio (K)";
-            if (v >= -3.20) return "Lítio (Li)<br><small>(Limite Químico)</small>";
+            if (v >= -0.45) return "Ferro (Fe)";
+            if (v >= -0.76) return "Zinco (Zn)";
+            if (v >= -1.18) return "Manganês (Mn)";
+            if (v >= -1.66) return "Alumínio (Al)";
             
-            return "Associação de Células<br><small>(Bateria de Alta Voltagem)</small>";
+            // Cobre a região entre o alumínio puro e o limite de -1.92V
+            return "Alumínio (Al) / Ligas Leves"; 
         }
 
         btnChoque.addEventListener('click', function() {
@@ -118,16 +115,14 @@ html_code = """
             ctx.beginPath(); ctx.moveTo(joelhoX, joelhoY); ctx.lineTo(peX, peY);
             ctx.strokeStyle = '#81C784'; ctx.lineWidth = 16; ctx.stroke();
 
-            // OS TRÊS DEDOS DA RÃ (Pezinhos Aumentados)
-            ctx.lineWidth = 6; // Ligeiramente mais grosso para visibilidade
+            // OS TRÊS DEDOS DA RÃ
+            ctx.lineWidth = 6; 
             ctx.strokeStyle = '#81C784'; 
 
-            // AUMENTADO: Comprimento e abertura dos dedos
             // Dedo Superior
-            let anguloDedo1 = anguloCanela - 0.5; // Abertura maior
+            let anguloDedo1 = anguloCanela - 0.5; 
             ctx.beginPath();
             ctx.moveTo(peX, peY);
-            // Comprimento aumentado de 30 para 50
             ctx.lineTo(peX + Math.cos(anguloDedo1) * 50, peY - Math.sin(anguloDedo1) * 50);
             ctx.stroke();
 
@@ -135,15 +130,13 @@ html_code = """
             let anguloDedo2 = anguloCanela;
             ctx.beginPath();
             ctx.moveTo(peX, peY);
-            // Comprimento aumentado de 35 para 55
             ctx.lineTo(peX + Math.cos(anguloDedo2) * 55, peY - Math.sin(anguloDedo2) * 55);
             ctx.stroke();
 
             // Dedo Inferior
-            let anguloDedo3 = anguloCanela + 0.5; // Abertura maior
+            let anguloDedo3 = anguloCanela + 0.5; 
             ctx.beginPath();
             ctx.moveTo(peX, peY);
-            // Comprimento aumentado de 30 para 50
             ctx.lineTo(peX + Math.cos(anguloDedo3) * 50, peY - Math.sin(anguloDedo3) * 50);
             ctx.stroke();
         }
@@ -178,7 +171,8 @@ html_code = """
             let anodo = parseFloat(sliderAnodo.value);
             let ddp = CATODO - anodo; 
             
-            valAnodo.innerText = anodo.toFixed(2) + ' V';
+            // Adicionado o prefixo "Eº de Redução:" direto na tela
+            valAnodo.innerText = "Eº de Redução: " + anodo.toFixed(2) + ' V';
             valDdp.innerText = ddp.toFixed(2) + ' V';
             nomeMetalDisplay.innerHTML = obterNomeMetal(anodo);
             
